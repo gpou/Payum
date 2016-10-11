@@ -7,12 +7,12 @@ use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Stripe\Keys;
-use Payum\Stripe\Request\Api\CreateCustomer;
+use Payum\Stripe\Request\Api\UpdateCustomer;
 use Stripe\Customer;
 use Stripe\Error;
 use Stripe\Stripe;
 
-class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterface
+class UpdateCustomerAction extends GatewayAwareAction implements ApiAwareInterface
 {
     /**
      * @var Keys
@@ -40,17 +40,21 @@ class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterfa
         RequestNotSupportedException::assertSupports($this, $request);
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
+        $model->validateNotEmpty(array(
+            'id',
+            'default_source'
+        ));
 
         try {
             Stripe::setApiKey($this->keys->getSecretKey());
 
-            $customer = $model->toUnsafeArrayWithoutLocal();
-            if (@$customer['source'] && is_array($customer['source']) && !@$customer['source']['object']) {
-                $customer['source']['object'] = 'card';
-            }
-            $customer = Customer::create($customer);
+            $customer = Customer::retrieve($model['id']);
+            $customer->default_source = $model['default_source'];
+            $customer->save();
 
-            $model->replace($customer->__toArray(true));
+            $updatedCustomer = Customer::retrieve($model['id']);
+
+            $model->replace($updatedCustomer->__toArray(true));
         } catch (Error\Base $e) {
             $model->replace($e->getJsonBody());
         }
@@ -62,7 +66,7 @@ class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterfa
     public function supports($request)
     {
         return
-            $request instanceof CreateCustomer &&
+            $request instanceof UpdateCustomer &&
             $request->getModel() instanceof \ArrayAccess
         ;
     }

@@ -1,18 +1,19 @@
 <?php
 namespace Payum\Stripe\Action\Api;
 
-use Payum\Core\Action\GatewayAwareAction;
+use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
+use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Stripe\Keys;
-use Payum\Stripe\Request\Api\CreateCustomer;
-use Stripe\Customer;
+use Payum\Stripe\Request\Api\CaptureCharge;
+use Stripe\Charge;
 use Stripe\Error;
 use Stripe\Stripe;
 
-class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterface
+class CaptureChargeAction implements ActionInterface, ApiAwareInterface
 {
     /**
      * @var Keys
@@ -36,21 +37,32 @@ class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterfa
      */
     public function execute($request)
     {
-        /** @var $request CreateCustomer */
+        /** @var $request CreateCharge */
         RequestNotSupportedException::assertSupports($this, $request);
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
 
+        $model->validateNotEmpty(array(
+            'id',
+        ));
+
+        if (false == $model['paid']) {
+            throw new LogicException('The charge must have been authorized.');
+        }
+        if (true == $model['captured']) {
+            throw new LogicException('The charge has already been captured.');
+        }
+        if (true == $model['refunded']) {
+            throw new LogicException('The charge has been refunded.');
+        }
+
         try {
             Stripe::setApiKey($this->keys->getSecretKey());
 
-            $customer = $model->toUnsafeArrayWithoutLocal();
-            if (@$customer['source'] && is_array($customer['source']) && !@$customer['source']['object']) {
-                $customer['source']['object'] = 'card';
-            }
-            $customer = Customer::create($customer);
+            $charge = Charge::retrieve($model['id']);
+            $charge->capture();
 
-            $model->replace($customer->__toArray(true));
+            $model->replace($charge->__toArray(true));
         } catch (Error\Base $e) {
             $model->replace($e->getJsonBody());
         }
@@ -62,7 +74,7 @@ class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterfa
     public function supports($request)
     {
         return
-            $request instanceof CreateCustomer &&
+            $request instanceof CaptureCharge &&
             $request->getModel() instanceof \ArrayAccess
         ;
     }

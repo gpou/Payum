@@ -7,18 +7,18 @@ use Payum\Core\GatewayInterface;
 use Payum\Core\Reply\HttpResponse;
 use Payum\Core\Request\GetHttpRequest;
 use Payum\Core\Request\RenderTemplate;
-use Payum\Stripe\Action\Api\ObtainTokenAction;
+use Payum\Stripe\Action\Api\ConfirmPaymentAction;
 use Payum\Stripe\Keys;
-use Payum\Stripe\Request\Api\ObtainToken;
+use Payum\Stripe\Request\Api\ConfirmPayment;
 
-class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
+class ConfirmPaymentActionTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * @test
      */
     public function shouldBeSubClassOfGatewayAwareAction()
     {
-        $rc = new \ReflectionClass(ObtainTokenAction::class);
+        $rc = new \ReflectionClass(ConfirmPaymentAction::class);
 
         $this->assertTrue($rc->isSubclassOf(GatewayAwareAction::class));
     }
@@ -28,7 +28,7 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
      */
     public function shouldImplementsApiAwareInterface()
     {
-        $rc = new \ReflectionClass(ObtainTokenAction::class);
+        $rc = new \ReflectionClass(ConfirmPaymentAction::class);
 
         $this->assertTrue($rc->isSubclassOf(ApiAwareInterface::class));
     }
@@ -38,7 +38,7 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
      */
     public function couldBeConstructedWithTemplateAsFirstArgument()
     {
-        new ObtainTokenAction('aTemplateName');
+        new ConfirmPaymentAction('aTemplateName');
     }
 
     /**
@@ -46,7 +46,7 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
      */
     public function shouldAllowSetKeysAsApi()
     {
-        $action = new ObtainTokenAction('aTemplateName');
+        $action = new ConfirmPaymentAction('aTemplateName');
 
         $action->setApi(new Keys('publishableKey', 'secretKey'));
     }
@@ -58,7 +58,7 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
      */
     public function throwNotSupportedApiIfNotKeysGivenAsApi()
     {
-        $action = new ObtainTokenAction('aTemplateName');
+        $action = new ConfirmPaymentAction('aTemplateName');
 
         $action->setApi('not keys instance');
     }
@@ -66,29 +66,29 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function shouldSupportObtainTokenRequestWithArrayAccessModel()
+    public function shouldSupportConfirmPaymentRequestWithArrayAccessModel()
     {
-        $action = new ObtainTokenAction('aTemplateName');
+        $action = new ConfirmPaymentAction('aTemplateName');
 
-        $this->assertTrue($action->supports(new ObtainToken(array())));
+        $this->assertTrue($action->supports(new ConfirmPayment(array())));
     }
 
     /**
      * @test
      */
-    public function shouldNotSupportObtainTokenRequestWithNotArrayAccessModel()
+    public function shouldNotSupportConfirmPaymentRequestWithNotArrayAccessModel()
     {
-        $action = new ObtainTokenAction('aTemplateName');
+        $action = new ConfirmPaymentAction('aTemplateName');
 
-        $this->assertFalse($action->supports(new ObtainToken(new \stdClass())));
+        $this->assertFalse($action->supports(new ConfirmPayment(new \stdClass())));
     }
 
     /**
      * @test
      */
-    public function shouldNotSupportNotObtainTokenRequest()
+    public function shouldNotSupportNotConfirmPaymentRequest()
     {
-        $action = new ObtainTokenAction('aTemplateName');
+        $action = new ConfirmPaymentAction('aTemplateName');
 
         $this->assertFalse($action->supports(new \stdClass()));
     }
@@ -97,28 +97,82 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
      * @test
      *
      * @expectedException \Payum\Core\Exception\RequestNotSupportedException
-     * @expectedExceptionMessage Action ObtainTokenAction is not supported the request stdClass.
+     * @expectedExceptionMessage Action ConfirmPaymentAction is not supported the request stdClass.
      */
     public function throwRequestNotSupportedIfNotSupportedGiven()
     {
-        $action = new ObtainTokenAction('aTemplateName');
+        $action = new ConfirmPaymentAction('aTemplateName');
 
         $action->execute(new \stdClass());
+    }
+
+
+    /**
+     * @test
+     *
+     * @expectedException \Payum\Core\Exception\LogicException
+     * @expectedExceptionMessage The id fields are required.
+     */
+    public function throwIfIdNotSet()
+    {
+        $action = new ConfirmPaymentAction('aTemplateName');
+
+        $action->execute(new ConfirmPayment([]));
     }
 
     /**
      * @test
      *
      * @expectedException \Payum\Core\Exception\LogicException
-     * @expectedExceptionMessage The token has already been set.
+     * @expectedExceptionMessage The charge must have been authorized.
      */
-    public function throwIfModelAlreadyHaveTokenSet()
+    public function throwIfPaidNotSet()
     {
-        $action = new ObtainTokenAction('aTemplateName');
+        $action = new ConfirmPaymentAction('aTemplateName');
 
-        $action->execute(new ObtainToken(array(
-            'card' => 'aToken',
-        )));
+        $action->execute(new ConfirmPayment(['id' => 'chargeId']));
+    }
+
+    /**
+     * @test
+     *
+     * @expectedException \Payum\Core\Exception\LogicException
+     * @expectedExceptionMessage The charge must have been authorized.
+     */
+    public function throwIfPaidIsFalse()
+    {
+        $action = new ConfirmPaymentAction('aTemplateName');
+
+        $action->execute(new ConfirmPayment(['id' => 'chargeId', 'paid' => false]));
+    }
+
+    /**
+     * @test
+     */
+    public function shouldSetErrorIfChargeCaptured()
+    {
+        $action = new ConfirmPaymentAction('aTemplateName');
+
+        $action->execute($confirmPayment = new ConfirmPayment(['id' => 'chargeId', 'paid' => true, 'captured' => true]));
+
+        $model = $confirmPayment->getModel();
+        $this->assertEquals([
+            'message' => 'charge_has_been_captured',
+        ], @$model['error']);
+    }
+
+    /**
+     * @test
+     */
+    public function shouldSetErrorIfChargeRefunded()
+    {
+        $action = new ConfirmPaymentAction('aTemplateName');
+        $action->execute($confirmPayment = new ConfirmPayment(['id' => 'chargeId', 'paid' => true, 'refunded' => true]));
+
+        $model = $confirmPayment->getModel();
+        $this->assertEquals([
+            'message' => 'charge_has_been_refunded',
+        ], @$model['error']);
     }
 
     /**
@@ -127,8 +181,9 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
     public function shouldRenderExpectedTemplateIfHttpRequestNotPOST()
     {
         $model = new \ArrayObject();
+        $model['id'] = 'chargeId';
+        $model['paid'] = true;
         $templateName = 'theTemplateName';
-        $publishableKey = 'thePubKey';
 
         $gatewayMock = $this->createGatewayMock();
         $gatewayMock
@@ -143,24 +198,21 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
             ->expects($this->at(1))
             ->method('execute')
             ->with($this->isInstanceOf(RenderTemplate::class))
-            ->will($this->returnCallback(function (RenderTemplate $request) use ($templateName, $publishableKey, $model) {
+            ->will($this->returnCallback(function (RenderTemplate $request) use ($templateName, $model) {
                 $this->assertEquals($templateName, $request->getTemplateName());
 
                 $context = $request->getParameters();
                 $this->assertArrayHasKey('model', $context);
-                $this->assertArrayHasKey('publishable_key', $context);
-                $this->assertEquals($publishableKey, $context['publishable_key']);
 
                 $request->setResult('theContent');
             }))
         ;
 
-        $action = new ObtainTokenAction($templateName);
+        $action = new ConfirmPaymentAction($templateName);
         $action->setGateway($gatewayMock);
-        $action->setApi(new Keys($publishableKey, 'secretKey'));
 
         try {
-            $action->execute(new ObtainToken($model));
+            $action->execute(new ConfirmPayment($model));
         } catch (HttpResponse $reply) {
             $this->assertEquals('theContent', $reply->getContent());
 
@@ -173,11 +225,12 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function shouldRenderTemplateIfHttpRequestPOSTButNotContainStripeToken()
+    public function shouldRenderTemplateIfHttpRequestPOSTButNotContainConfirm()
     {
         $model = array();
+        $model['id'] = 'chargeId';
+        $model['paid'] = true;
         $templateName = 'aTemplateName';
-        $publishableKey = 'aPubKey';
 
         $gatewayMock = $this->createGatewayMock();
         $gatewayMock
@@ -194,12 +247,11 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
             ->with($this->isInstanceOf(RenderTemplate::class))
         ;
 
-        $action = new ObtainTokenAction($templateName);
+        $action = new ConfirmPaymentAction($templateName);
         $action->setGateway($gatewayMock);
-        $action->setApi(new Keys($publishableKey, 'secretKey'));
 
         try {
-            $action->execute(new ObtainToken($model));
+            $action->execute(new ConfirmPayment($model));
         } catch (HttpResponse $reply) {
             return;
         }
@@ -210,11 +262,12 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function shouldSetTokenFromHttpRequestToObtainTokenRequestOnPOST()
+    public function shouldGiveControllBackIfHttpRequestPostWithConfirm()
     {
         $model = array();
+        $model['id'] = 'chargeId';
+        $model['paid'] = true;
         $templateName = 'aTemplateName';
-        $publishableKey = 'aPubKey';
 
         $gatewayMock = $this->createGatewayMock();
         $gatewayMock
@@ -223,48 +276,14 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
             ->with($this->isInstanceOf(GetHttpRequest::class))
             ->will($this->returnCallback(function (GetHttpRequest $request) {
                 $request->method = 'POST';
-                $request->request = array('stripeToken' => 'theToken');
+                $request->request = array('confirm' => 1);
             }))
         ;
 
-        $action = new ObtainTokenAction($templateName);
+        $action = new ConfirmPaymentAction($templateName);
         $action->setGateway($gatewayMock);
-        $action->setApi(new Keys($publishableKey, 'secretKey'));
 
-        $action->execute($obtainToken = new ObtainToken($model));
-
-        $model = $obtainToken->getModel();
-        $this->assertEquals('theToken', $model['card']);
-    }
-
-    /**
-     * @test
-     */
-    public function shouldSetCardFromHttpRequestToObtainTokenRequestOnPOST()
-    {
-        $model = array();
-        $templateName = 'aTemplateName';
-        $publishableKey = 'aPubKey';
-
-        $gatewayMock = $this->createGatewayMock();
-        $gatewayMock
-            ->expects($this->once())
-            ->method('execute')
-            ->with($this->isInstanceOf(GetHttpRequest::class))
-            ->will($this->returnCallback(function (GetHttpRequest $request) {
-                $request->method = 'POST';
-                $request->request = array('stripeCard' => 'cardId');
-            }))
-        ;
-
-        $action = new ObtainTokenAction($templateName);
-        $action->setGateway($gatewayMock);
-        $action->setApi(new Keys($publishableKey, 'secretKey'));
-
-        $action->execute($obtainToken = new ObtainToken($model));
-
-        $model = $obtainToken->getModel();
-        $this->assertEquals('cardId', $model['card']);
+        $action->execute(new ConfirmPayment($model));
     }
 
     /**

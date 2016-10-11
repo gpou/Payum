@@ -154,7 +154,7 @@ class ConvertPaymentActionTest extends GenericActionTest
 
         $this->assertNotEmpty($details);
 
-        $this->assertArrayHasKey('customer', $details);
-        $this->assertEquals('theCustomerId', $details['customer']);
+        $this->assertArrayHasKey('card', $details);
+        $this->assertEquals('theCustomerId', $details['card']);
     }
 }

@@ -4,15 +4,16 @@ namespace Payum\Stripe\Action\Api;
 use Payum\Core\Action\GatewayAwareAction;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
+use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Stripe\Keys;
-use Payum\Stripe\Request\Api\CreateCustomer;
-use Stripe\Customer;
+use Payum\Stripe\Request\Api\RetrieveCharge;
+use Stripe\Charge;
 use Stripe\Error;
 use Stripe\Stripe;
 
-class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterface
+class RetrieveChargeAction extends GatewayAwareAction implements ApiAwareInterface
 {
     /**
      * @var Keys
@@ -36,21 +37,21 @@ class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterfa
      */
     public function execute($request)
     {
-        /** @var $request CreateCustomer */
+        /** @var $request CreateCharge */
         RequestNotSupportedException::assertSupports($this, $request);
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
 
+        $model->validateNotEmpty(array(
+            'id',
+        ));
+
         try {
             Stripe::setApiKey($this->keys->getSecretKey());
 
-            $customer = $model->toUnsafeArrayWithoutLocal();
-            if (@$customer['source'] && is_array($customer['source']) && !@$customer['source']['object']) {
-                $customer['source']['object'] = 'card';
-            }
-            $customer = Customer::create($customer);
+            $charge = Charge::retrieve($model['id']);
 
-            $model->replace($customer->__toArray(true));
+            $model->replace($charge->__toArray(true));
         } catch (Error\Base $e) {
             $model->replace($e->getJsonBody());
         }
@@ -62,7 +63,7 @@ class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterfa
     public function supports($request)
     {
         return
-            $request instanceof CreateCustomer &&
+            $request instanceof RetrieveCharge &&
             $request->getModel() instanceof \ArrayAccess
         ;
     }
