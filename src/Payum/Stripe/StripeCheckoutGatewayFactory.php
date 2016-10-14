@@ -9,9 +9,12 @@ use Payum\Stripe\Action\Api\CreateCustomerAction;
 use Payum\Stripe\Action\Api\CreatePlanAction;
 use Payum\Stripe\Action\Api\CreateTokenAction;
 use Payum\Stripe\Action\Api\ObtainTokenAction;
+use Payum\Stripe\Action\Api\RetrieveChargeAction;
+use Payum\Stripe\Action\Api\CaptureChargeAction;
 use Payum\Stripe\Action\CaptureAction;
 use Payum\Stripe\Action\ConvertPaymentAction;
 use Payum\Stripe\Action\GetCreditCardTokenAction;
+use Payum\Stripe\Action\SyncPaymentAction;
 use Payum\Stripe\Extension\CreateCustomerExtension;
 use Payum\Stripe\Action\StatusAction;
 use Stripe\Stripe;
@@ -40,10 +43,13 @@ class StripeCheckoutGatewayFactory extends GatewayFactory
             'payum.action.obtain_token' => function (ArrayObject $config) {
                 return new ObtainTokenAction($config['payum.template.obtain_token']);
             },
+            'payum.action.sync_payment' => new SyncPaymentAction(),
             'payum.action.create_charge' => new CreateChargeAction(),
             'payum.action.create_customer' => new CreateCustomerAction(),
             'payum.action.create_plan' => new CreatePlanAction(),
             'payum.action.create_token' => new CreateTokenAction(),
+            'payum.action.retrieve_charge' => new RetrieveChargeAction(),
+            'payum.action.capture_charge' => new CaptureChargeAction(),
 
             'payum.extension.create_customer' => new CreateCustomerExtension(),
         ]);
