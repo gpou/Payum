@@ -5,12 +5,14 @@ use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\LogicException;
 use Payum\Core\GatewayFactory;
 use Payum\Stripe\Action\Api\CreateChargeAction;
+use Payum\Stripe\Action\Api\CreateRefundAction;
 use Payum\Stripe\Action\Api\CreateCustomerAction;
 use Payum\Stripe\Action\Api\CreatePlanAction;
 use Payum\Stripe\Action\Api\CreateTokenAction;
 use Payum\Stripe\Action\Api\ObtainTokenAction;
 use Payum\Stripe\Action\CaptureAction;
 use Payum\Stripe\Action\ConvertPaymentAction;
+use Payum\Stripe\Action\ConvertRefundAction;
 use Payum\Stripe\Action\GetCreditCardTokenAction;
 use Payum\Stripe\Extension\CreateCustomerExtension;
 use Payum\Stripe\Action\StatusAction;
@@ -35,12 +37,14 @@ class StripeCheckoutGatewayFactory extends GatewayFactory
 
             'payum.action.capture' => new CaptureAction(),
             'payum.action.convert_payment' => new ConvertPaymentAction(),
+            'payum.action.convert_refund' => new ConvertRefundAction(),
             'payum.action.status' => new StatusAction(),
             'payum.action.get_credit_card_token' => new GetCreditCardTokenAction(),
             'payum.action.obtain_token' => function (ArrayObject $config) {
                 return new ObtainTokenAction($config['payum.template.obtain_token']);
             },
             'payum.action.create_charge' => new CreateChargeAction(),
+            'payum.action.create_refund' => new CreateRefundAction(),
             'payum.action.create_customer' => new CreateCustomerAction(),
             'payum.action.create_plan' => new CreatePlanAction(),
             'payum.action.create_token' => new CreateTokenAction(),
