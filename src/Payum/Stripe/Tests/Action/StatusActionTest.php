@@ -62,6 +62,22 @@ class StatusActionTest extends GenericActionTest
         $this->assertTrue($status->isPending());
     }
 
+     /**
+     * @test
+     */
+    public function shouldMarkPendingIfModelHasNotStatusButHasCharge()
+    {
+        $action = new StatusAction();
+
+        $model = array(
+            'charge' => 'charge_id',
+        );
+
+        $action->execute($status = new GetHumanStatus($model));
+
+        $this->assertTrue($status->isPending());
+    }
+
     /**
      * @test
      */
@@ -86,8 +102,26 @@ class StatusActionTest extends GenericActionTest
         $action = new StatusAction();
 
         $model = array(
+            'object' => Constants::OBJECT_CHARGE,
             'status' => Constants::STATUS_SUCCEEDED,
             'refunded' => true,
+        );
+
+        $action->execute($status = new GetHumanStatus($model));
+
+        $this->assertTrue($status->isRefunded());
+    }
+
+     /**
+     * @test
+     */
+    public function shouldMarkRefundedIfStatusSetAndObjectIsRefund()
+    {
+        $action = new StatusAction();
+
+        $model = array(
+            'object' => Constants::OBJECT_REFUND,
+            'status' => Constants::STATUS_SUCCEEDED,
         );
 
         $action->execute($status = new GetHumanStatus($model));
@@ -103,6 +137,7 @@ class StatusActionTest extends GenericActionTest
         $action = new StatusAction();
 
         $model = array(
+            'object' => Constants::OBJECT_CHARGE,
             'refunded' => true,
         );
 
