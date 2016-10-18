@@ -26,13 +26,13 @@ class StatusAction implements ActionInterface
             return;
         }
 
-        if (false == $model['status'] && false == $model['card']) {
+        if (false == $model['status'] && false == $model['card'] && false == $model['charge']) {
             $request->markNew();
 
             return;
         }
 
-        if (false == $model['status'] && $model['card']) {
+        if (false == $model['status'] && ($model['card'] || $model['charge'])) {
             $request->markPending();
 
             return;
@@ -44,7 +44,10 @@ class StatusAction implements ActionInterface
             return;
         }
 
-        if ($model['refunded']) {
+        if ((Constants::OBJECT_CHARGE === $model['object'] && $model['refunded'])
+            || (Constants::STATUS_SUCCEEDED == $model['status']
+            && Constants::OBJECT_REFUND === $model['object'])
+        ) {
             $request->markRefunded();
 
             return;
@@ -62,12 +65,12 @@ class StatusAction implements ActionInterface
             return;
         }
 
-
         if (Constants::STATUS_SUCCEEDED == $model['status'] && false == $model['captured']) {
             $request->markAuthorized();
 
             return;
         }
+
         if (Constants::STATUS_PAID == $model['status'] && false == $model['captured']) {
             $request->markAuthorized();
 
