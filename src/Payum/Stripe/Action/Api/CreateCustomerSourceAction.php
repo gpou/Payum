@@ -41,25 +41,18 @@ class CreateCustomerSourceAction extends GatewayAwareAction implements ApiAwareI
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
         $model->validateNotEmpty(array(
-            'id',
+            'customer',
             'source'
         ));
 
         try {
             Stripe::setApiKey($this->keys->getSecretKey());
 
-            $customer = Customer::retrieve($model['id']);
+            $customer = Customer::retrieve($model['customer']);
             $createdCard = $customer->sources->create(array("card" => $model['source']));
 
-            if (!$createdCard->id) {
-                $model->replace($createdCard->__toArray(true));
-            } else {
-                $updatedCustomer = Customer::retrieve($model['id']);
-                $updatedCustomer->default_source = $createdCard->id;
-                $updatedCustomer->save();
+            $model->replace($createdCard->__toArray(true));
 
-                $model->replace($updatedCustomer->__toArray(true));
-            }
         } catch (Error\Base $e) {
             $model->replace($e->getJsonBody());
         }

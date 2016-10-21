@@ -6,15 +6,14 @@ use Payum\Core\Extension\Context;
 use Payum\Core\Extension\ExtensionInterface;
 use Payum\Core\GatewayInterface;
 use Payum\Core\Request\Capture;
+use Payum\Core\Security\SensitiveValue;
 use Payum\Stripe\Constants;
 use Payum\Stripe\Request\Api\CreateCustomer;
 use Payum\Stripe\Request\Api\ObtainToken;
 use Payum\Stripe\Request\Api\RetrieveCustomer;
 use Payum\Stripe\Request\Api\UpdateCustomer;
-use Payum\Stripe\Request\Api\ConfirmPayment;
 use Payum\Stripe\Request\Api\CreateCustomerSource;
-use Payum\Stripe\Request\Api\RetrieveToken;
-use Payum\Stripe\Request\Api\ObtainCard;
+use Payum\Stripe\Request\Api\CreateCharge;
 
 class CreateCustomerExtension implements ExtensionInterface
 {
@@ -37,7 +36,6 @@ class CreateCustomerExtension implements ExtensionInterface
         $model = ArrayObject::ensureArrayObject($model);
 
         $this->retrieveCustomer($context->getGateway(), $model);
-        $this->obtainCard($context->getGateway(), $model);
         $this->createCustomer($context->getGateway(), $model);
     }
 
@@ -55,7 +53,8 @@ class CreateCustomerExtension implements ExtensionInterface
     {
         /** @var Capture $request */
         $request = $context->getRequest();
-        if (false == $request instanceof ObtainToken) {
+        if (false == $request instanceof ObtainToken
+            && false == $request instanceof CreateCharge) {
             return;
         }
 
@@ -64,7 +63,13 @@ class CreateCustomerExtension implements ExtensionInterface
             return;
         }
 
-        $this->createCustomer($context->getGateway(), ArrayObject::ensureArrayObject($model));
+        if ($request instanceof ObtainToken) {
+            $this->createCustomer($context->getGateway(), ArrayObject::ensureArrayObject($model));
+        }
+
+        if ($request instanceof CreateCharge) {
+            $this->updateCustomer($context->getGateway(), ArrayObject::ensureArrayObject($model));
+        }
     }
 
     /**
@@ -73,7 +78,13 @@ class CreateCustomerExtension implements ExtensionInterface
      */
     protected function createCustomer(GatewayInterface $gateway, ArrayObject $model)
     {
-        if (false == ($model['card'] && is_string($model['card']))) {
+        if (@$model['customer']) {
+            return;
+        }
+
+        if (!@$model['card']
+            || (!is_string($model['card']) && !$model['card'] instanceof SensitiveValue)
+        ) {
             return;
         }
 
@@ -84,75 +95,88 @@ class CreateCustomerExtension implements ExtensionInterface
 
         $customer = $local->getArray('customer');
 
-        if (isset($customer['id'])) {
-            if (substr($model['card'], 0, 3) == 'tok') {
-                $token = ['token' => $model['card']];
-                $token = ArrayObject::ensureArrayObject($token);
-                $gateway->execute(new RetrieveToken($token));
-                $token = $token->toUnsafeArray();
-                if ($existingCard = current(array_filter(
-                    @$customer['sources']['data'] ?: [],
-                    function($source) use($token) {
-                        return $source['fingerprint'] == $token['card']['fingerprint'];
-                    }
-                ))) {
-                    $source = $existingCard['id'];
-                } else {
-                    $customer['source'] = $model['card'];
-                    $gateway->execute(new CreateCustomerSource($customer));
-                    $source = $customer['default_source'];
+        $customer['source'] = $model['card'] instanceof SensitiveValue
+            ? $model['card']->peek()
+            : $model['card'];
+        if (@$customer['id']) {
+            if ($model['card'] instanceof SensitiveValue || substr($model['card'], 0, 3) == 'tok') {
+                $customerSource = ArrayObject::ensureArrayObject(['customer' => $customer['id'], 'source' => $customer['source']]);
+                $gateway->execute(new CreateCustomerSource($customerSource));
+                if (!@$customerSource['id']) {
+                    $model['status'] = Constants::STATUS_FAILED;
+                    $model['error'] = @$customerSource['error'];
+                    return;
                 }
+                $model['source'] = $customerSource['id'];
             } else {
-                $source = $model['card'];
+                $model['source'] = $model['card'];
             }
         } else {
-            $customer['source'] = $model['card'];
             $gateway->execute(new CreateCustomer($customer));
-            $source = $customer['default_source'];
+            $model['source'] = $customer['default_source'];
         }
 
-        $local['customer'] = $customer->toUnsafeArray();
+        $customer = $customer->toUnsafeArray();
+        if ($model['card'] instanceof SensitiveValue) {
+            unset($customer['source']);
+        }
+        $local['customer'] = $customer;
         $model['local'] = $local->toUnsafeArray();
         unset($model['card']);
 
-        if ($customer['id'] && !@$customer['error']) {
+        if (@$customer['id'] && !@$customer['error']) {
             $model['customer'] = $customer['id'];
-            $model['source'] = $source;
         } else {
             $model['status'] = Constants::STATUS_FAILED;
             $model['error'] = $customer['error'];
         }
     }
 
-    protected function obtainCard($gateway, $model)
-    {
-        $local = $model->getArray('local');
-        if (false == $local['save_card']) {
-            return;
-        }
-
-        $customer = $local->getArray('customer');
-        if (false == $customer['id']) {
-            return;
-        }
-
-        $gateway->execute(new ObtainCard($model));
-    }
-
     protected function retrieveCustomer($gateway, $model)
     {
+        if (@$model['customer']) {
+            return;
+        }
+
         $local = $model->getArray('local');
         if (false == $local['save_card']) {
             return;
         }
 
         $customer = $local->getArray('customer');
-        if (false == $customer['id']) {
+        if (!@$customer['id']) {
             return;
         }
 
         $customer = ArrayObject::ensureArrayObject($customer);
         $gateway->execute(new RetrieveCustomer($customer));
+
+        $local['customer'] = $customer->toUnsafeArray();
+        $model['local'] = $local->toUnsafeArray();
+    }
+
+    protected function updateCustomer($gateway, $model)
+    {
+        if (!@$model['source'] || !@$model['customer']) {
+            return;
+        }
+
+        $local = $model->getArray('local');
+        if (false == $local['save_card']) {
+            return;
+        }
+
+        $customer = $local->getArray('customer');
+        if (!@$customer['id'] || @$customer['default_source'] == $model['source']) {
+            return;
+        }
+
+        $customer = ArrayObject::ensureArrayObject($customer);
+        $gateway->execute(new UpdateCustomer($customer));
+
+        if (!@$customer['id']) {
+            return;
+        }
 
         $local['customer'] = $customer->toUnsafeArray();
         $model['local'] = $local->toUnsafeArray();
