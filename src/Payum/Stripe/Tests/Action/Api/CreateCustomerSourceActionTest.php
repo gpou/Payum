@@ -106,9 +106,9 @@ class CreateCustomerSourceActionTest extends \PHPUnit_Framework_TestCase
      * @test
      *
      * @expectedException \Payum\Core\Exception\LogicException
-     * @expectedExceptionMessage The id fields are required.
+     * @expectedExceptionMessage The customer fields are required.
      */
-    public function throwIfIdNotSet()
+    public function throwIfCustomerNotSet()
     {
         $action = new CreateCustomerSourceAction();
 
@@ -125,8 +125,6 @@ class CreateCustomerSourceActionTest extends \PHPUnit_Framework_TestCase
     {
         $action = new CreateCustomerSourceAction();
 
-        $action->execute(new CreateCustomerSource([
-            'id' => 'customerId',
-        ]));
+        $action->execute(new CreateCustomerSource(['customer' => 'customerId']));
     }
 }

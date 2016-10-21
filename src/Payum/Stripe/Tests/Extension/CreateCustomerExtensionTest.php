@@ -11,7 +11,6 @@ use Payum\Stripe\Constants;
 use Payum\Stripe\Extension\CreateCustomerExtension;
 use Payum\Stripe\Request\Api\CreateCustomer;
 use Payum\Stripe\Request\Api\ObtainToken;
-use Payum\Stripe\Request\Api\ObtainCard;
 use Payum\Stripe\Request\Api\RetrieveCustomer;
 use Payum\Stripe\Request\Api\CreateCustomerSource;
 use Payum\Stripe\Request\Api\RetrieveToken;
@@ -48,7 +47,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
-                $this->assertEquals(['card' => 'theCardToken'], (array) $model);
+                $this->assertEquals(['source' => 'theCardToken'], (array) $model);
 
                 $model['id'] = 'theCustomerId';
                 $model['default_source'] = 'theCardToken';
@@ -66,7 +65,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => 'theCustomerId',
-                    'card' => 'theCardToken',
+                    'source' => 'theCardToken',
                     'default_source' => 'theCardToken',
                 ]
             ],
@@ -96,7 +95,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
                 $this->assertEquals([
-                    'card' => 'theCardToken',
+                    'source' => 'theCardToken',
                     'foo' => 'fooVal',
                     'bar' => 'barVal'
                 ], (array) $model);
@@ -117,7 +116,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => 'theCustomerId',
-                    'card' => 'theCardToken',
+                    'source' => 'theCardToken',
                     'default_source' => 'theCardToken',
                     'foo' => 'fooVal',
                     'bar' => 'barVal'
@@ -147,7 +146,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
-                $this->assertEquals(['card' => 'theCardToken'], (array) $model);
+                $this->assertEquals(['source' => 'theCardToken'], (array) $model);
 
                 // we assume the customer creation has failed when the customer does not have an id set.
                 $model['id'] = null;
@@ -166,15 +165,16 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => null,
-                    'card' => 'theCardToken',
+                    'source' => 'theCardToken',
                     'error' => 'someError'
                 ]
             ],
             'error' => 'someError',
+            'source' => null,
         ], (array) $request->getModel());
     }
 
-    public function testShouldDoNothingIfNeitherCaptureNorObtainTokenRequestOnPreExecute()
+    public function testShouldDoNothingIfNotCaptureRequestOnPreExecute()
     {
         $model = new \ArrayObject([
             'card' => 'theCardToken',
@@ -302,7 +302,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
-                $this->assertEquals(['card' => 'theCardToken'], (array) $model);
+                $this->assertEquals(['source' => 'theCardToken'], (array) $model);
 
                 $model['id'] = 'theCustomerId';
                 $model['default_source'] = 'theCardToken';
@@ -320,9 +320,11 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => 'theCustomerId',
-                    'card' => 'theCardToken',
+                    'default_source' => 'theCardToken',
+                    'source' => 'theCardToken',
                 ]
             ],
+            'source' => 'theCardToken',
         ], (array) $request->getModel());
     }
 
@@ -348,12 +350,13 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
                 $this->assertEquals([
-                    'card' => 'theCardToken',
+                    'source' => 'theCardToken',
                     'foo' => 'fooVal',
-                    'bar' => 'barVal'
+                    'bar' => 'barVal',
                 ], (array) $model);
 
                 $model['id'] = 'theCustomerId';
+                $model['default_source'] = 'theCardToken';
             });
         ;
 
@@ -368,11 +371,13 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => 'theCustomerId',
-                    'card' => 'theCardToken',
                     'foo' => 'fooVal',
-                    'bar' => 'barVal'
+                    'bar' => 'barVal',
+                    'default_source' => 'theCardToken',
+                    'source' => 'theCardToken',
                 ]
             ],
+            'source' => 'theCardToken',
         ], (array) $request->getModel());
     }
 
@@ -396,10 +401,11 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
-                $this->assertEquals(['card' => 'theCardToken'], (array) $model);
+                $this->assertEquals(['source' => 'theCardToken'], (array) $model);
 
                 // we assume the customer creation has failed when the customer does not have an id set.
                 $model['id'] = null;
+                $model['error'] = 'someError';
             });
         ;
 
@@ -414,9 +420,12 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => null,
-                    'card' => 'theCardToken',
+                    'source' => 'theCardToken',
+                    'error' => 'someError',
                 ]
             ],
+            'error' => 'someError',
+            'source' => null,
         ], (array) $request->getModel());
     }
 
@@ -530,7 +539,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
         ], (array) $request->getModel());
     }
 
-    public function testShouldDoNothingIfCustomerSetOnPostExecute()
+    public function testShouldDoNothingIfCustomerSetOnObtainTokenPostExecute()
     {
         $model = new \ArrayObject([
             'customer' => 'aCustomerId',

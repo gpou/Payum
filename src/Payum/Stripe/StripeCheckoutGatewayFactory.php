@@ -17,7 +17,6 @@ use Payum\Stripe\Action\Api\UpdateCustomerAction;
 use Payum\Stripe\Action\Api\CreateCustomerSourceAction;
 use Payum\Stripe\Action\Api\ConfirmPaymentAction;
 use Payum\Stripe\Action\Api\RetrieveTokenAction;
-use Payum\Stripe\Action\Api\ObtainCardAction;
 use Payum\Stripe\Action\CaptureAction;
 use Payum\Stripe\Action\ConvertPaymentAction;
 use Payum\Stripe\Action\GetCreditCardTokenAction;
@@ -61,7 +60,6 @@ class StripeCheckoutGatewayFactory extends GatewayFactory
             'payum.action.update_customer' => new UpdateCustomerAction(),
             'payum.action.create_customer_source' => new CreateCustomerSourceAction(),
             'payum.action.retrieve_token' => new RetrieveTokenAction(),
-            'payum.action.obtain_card' => new ObtainCardAction(),
             'payum.action.confirm_payment' => function (ArrayObject $config) {
                 return new ConfirmPaymentAction($config['payum.template.confirm_payment']);
             },

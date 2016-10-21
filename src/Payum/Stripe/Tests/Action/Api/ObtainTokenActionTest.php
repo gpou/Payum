@@ -238,6 +238,36 @@ class ObtainTokenActionTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @test
+     */
+    public function shouldSetCardFromHttpRequestToObtainTokenRequestOnPOST()
+    {
+        $model = array();
+        $templateName = 'aTemplateName';
+        $publishableKey = 'aPubKey';
+
+        $gatewayMock = $this->createGatewayMock();
+        $gatewayMock
+            ->expects($this->once())
+            ->method('execute')
+            ->with($this->isInstanceOf(GetHttpRequest::class))
+            ->will($this->returnCallback(function (GetHttpRequest $request) {
+                $request->method = 'POST';
+                $request->request = array('stripeCard' => 'cardId');
+            }))
+        ;
+
+        $action = new ObtainTokenAction($templateName);
+        $action->setGateway($gatewayMock);
+        $action->setApi(new Keys($publishableKey, 'secretKey'));
+
+        $action->execute($obtainToken = new ObtainToken($model));
+
+        $model = $obtainToken->getModel();
+        $this->assertEquals('cardId', $model['card']);
+    }
+
+    /**
      * @return \PHPUnit_Framework_MockObject_MockObject|GatewayInterface
      */
     protected function createGatewayMock()

@@ -61,6 +61,13 @@ class ObtainTokenAction extends GatewayAwareAction implements ApiAwareInterface
 
         $getHttpRequest = new GetHttpRequest();
         $this->gateway->execute($getHttpRequest);
+
+        if ($getHttpRequest->method == 'POST' && isset($getHttpRequest->request['stripeCard'])) {
+            $model['card'] = $getHttpRequest->request['stripeCard'];
+
+            return;
+        }
+
         if ($getHttpRequest->method == 'POST' && isset($getHttpRequest->request['stripeToken'])) {
             $model['card'] = $getHttpRequest->request['stripeToken'];
 
