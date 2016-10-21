@@ -11,6 +11,10 @@ use Payum\Stripe\Constants;
 use Payum\Stripe\Extension\CreateCustomerExtension;
 use Payum\Stripe\Request\Api\CreateCustomer;
 use Payum\Stripe\Request\Api\ObtainToken;
+use Payum\Stripe\Request\Api\ObtainCard;
+use Payum\Stripe\Request\Api\RetrieveCustomer;
+use Payum\Stripe\Request\Api\CreateCustomerSource;
+use Payum\Stripe\Request\Api\RetrieveToken;
 
 class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 {
@@ -36,7 +40,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
         
         $gatewayMock = $this->createGatewayMock();
         $gatewayMock
-            ->expects($this->once())
+            ->expects($this->at(0))
             ->method('execute')
             ->with($this->isInstanceOf(CreateCustomer::class))
             ->willReturnCallback(function(CreateCustomer $request) {
@@ -47,6 +51,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 $this->assertEquals(['card' => 'theCardToken'], (array) $model);
 
                 $model['id'] = 'theCustomerId';
+                $model['default_source'] = 'theCardToken';
             });
         ;
 
@@ -62,8 +67,10 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'customer' => [
                     'id' => 'theCustomerId',
                     'card' => 'theCardToken',
+                    'default_source' => 'theCardToken',
                 ]
             ],
+            'source' => 'theCardToken',
         ], (array) $request->getModel());
     }
 
@@ -80,7 +87,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
         $gatewayMock = $this->createGatewayMock();
         $gatewayMock
-            ->expects($this->once())
+            ->expects($this->at(0))
             ->method('execute')
             ->with($this->isInstanceOf(CreateCustomer::class))
             ->willReturnCallback(function(CreateCustomer $request) {
@@ -95,6 +102,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 ], (array) $model);
 
                 $model['id'] = 'theCustomerId';
+                $model['default_source'] = 'theCardToken';
             });
         ;
 
@@ -110,10 +118,12 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'customer' => [
                     'id' => 'theCustomerId',
                     'card' => 'theCardToken',
+                    'default_source' => 'theCardToken',
                     'foo' => 'fooVal',
                     'bar' => 'barVal'
                 ]
             ],
+            'source' => 'theCardToken',
         ], (array) $request->getModel());
     }
 
@@ -129,7 +139,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
         $gatewayMock = $this->createGatewayMock();
         $gatewayMock
-            ->expects($this->once())
+            ->expects($this->at(0))
             ->method('execute')
             ->with($this->isInstanceOf(CreateCustomer::class))
             ->willReturnCallback(function(CreateCustomer $request) {
@@ -141,6 +151,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
                 // we assume the customer creation has failed when the customer does not have an id set.
                 $model['id'] = null;
+                $model['error'] = 'someError';
             });
         ;
 
@@ -156,12 +167,14 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'customer' => [
                     'id' => null,
                     'card' => 'theCardToken',
+                    'error' => 'someError'
                 ]
             ],
+            'error' => 'someError',
         ], (array) $request->getModel());
     }
 
-    public function testShouldDoNothingIfNotCaptureRequestOnPreExecute()
+    public function testShouldDoNothingIfNeitherCaptureNorObtainTokenRequestOnPreExecute()
     {
         $model = new \ArrayObject([
             'card' => 'theCardToken',
@@ -271,37 +284,6 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
         ], (array) $request->getModel());
     }
 
-    public function testShouldDoNothingIfCustomerSetOnPreExecute()
-    {
-        $model = new \ArrayObject([
-            'customer' => 'aCustomerId',
-            'card' => 'theTokenMustBeObtained',
-            'local' => [
-                'save_card' => true,
-            ],
-        ]);
-        $request = new Capture($model);
-
-        $gatewayMock = $this->createGatewayMock();
-        $gatewayMock
-            ->expects($this->never())
-            ->method('execute')
-        ;
-
-        $context = new Context($gatewayMock, $request, []);
-
-        $extension = new CreateCustomerExtension();
-        $extension->onPreExecute($context);
-
-        $this->assertEquals([
-            'customer' => 'aCustomerId',
-            'card' => 'theTokenMustBeObtained',
-            'local' => [
-                'save_card' => true,
-            ],
-        ], (array) $request->getModel());
-    }
-
     public function testShouldCreateCustomerAndReplaceCardTokenOnPostObtainToken()
     {
         $model = new \ArrayObject([
@@ -323,6 +305,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 $this->assertEquals(['card' => 'theCardToken'], (array) $model);
 
                 $model['id'] = 'theCustomerId';
+                $model['default_source'] = 'theCardToken';
             });
         ;
 
