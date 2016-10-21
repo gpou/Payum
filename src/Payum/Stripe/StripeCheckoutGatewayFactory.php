@@ -10,6 +10,14 @@ use Payum\Stripe\Action\Api\CreateCustomerAction;
 use Payum\Stripe\Action\Api\CreatePlanAction;
 use Payum\Stripe\Action\Api\CreateTokenAction;
 use Payum\Stripe\Action\Api\ObtainTokenAction;
+use Payum\Stripe\Action\Api\RetrieveChargeAction;
+use Payum\Stripe\Action\Api\CaptureChargeAction;
+use Payum\Stripe\Action\Api\RetrieveCustomerAction;
+use Payum\Stripe\Action\Api\UpdateCustomerAction;
+use Payum\Stripe\Action\Api\CreateCustomerSourceAction;
+use Payum\Stripe\Action\Api\ConfirmPaymentAction;
+use Payum\Stripe\Action\Api\RetrieveTokenAction;
+use Payum\Stripe\Action\Api\ObtainCardAction;
 use Payum\Stripe\Action\CaptureAction;
 use Payum\Stripe\Action\ConvertPaymentAction;
 use Payum\Stripe\Action\GetCreditCardTokenAction;
@@ -33,6 +41,7 @@ class StripeCheckoutGatewayFactory extends GatewayFactory
             'payum.factory_title' => 'Stripe Checkout',
 
             'payum.template.obtain_token' => '@PayumStripe/Action/obtain_checkout_token.html.twig',
+            'payum.template.confirm_payment' => '@PayumStripe/Action/confirm_payment.html.twig',
 
             'payum.action.capture' => new CaptureAction(),
             'payum.action.convert_payment' => new ConvertPaymentAction(),
@@ -46,6 +55,16 @@ class StripeCheckoutGatewayFactory extends GatewayFactory
             'payum.action.create_customer' => new CreateCustomerAction(),
             'payum.action.create_plan' => new CreatePlanAction(),
             'payum.action.create_token' => new CreateTokenAction(),
+            'payum.action.retrieve_charge' => new RetrieveChargeAction(),
+            'payum.action.capture_charge' => new CaptureChargeAction(),
+            'payum.action.retrieve_customer' => new RetrieveCustomerAction(),
+            'payum.action.update_customer' => new UpdateCustomerAction(),
+            'payum.action.create_customer_source' => new CreateCustomerSourceAction(),
+            'payum.action.retrieve_token' => new RetrieveTokenAction(),
+            'payum.action.obtain_card' => new ObtainCardAction(),
+            'payum.action.confirm_payment' => function (ArrayObject $config) {
+                return new ConfirmPaymentAction($config['payum.template.confirm_payment']);
+            },
 
             'payum.extension.create_customer' => new CreateCustomerExtension(),
         ]);

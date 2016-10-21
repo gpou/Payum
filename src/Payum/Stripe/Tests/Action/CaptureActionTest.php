@@ -10,6 +10,8 @@ use Payum\Stripe\Action\CaptureAction;
 use Payum\Stripe\Constants;
 use Payum\Stripe\Request\Api\CreateCharge;
 use Payum\Stripe\Request\Api\ObtainToken;
+use Payum\Stripe\Request\Api\RetrieveCharge;
+use Payum\Stripe\Request\Api\ConfirmPayment;
 
 class CaptureActionTest extends GenericActionTest
 {
@@ -30,16 +32,66 @@ class CaptureActionTest extends GenericActionTest
     /**
      * @test
      */
-    public function shouldDoNothingIfPaymentHasStatus()
+    public function shouldDoNothingIfPaymentHasStatusAndIsFailed()
     {
         $model = [
-            'status' => Constants::STATUS_SUCCEEDED,
+            'status' => Constants::STATUS_FAILED,
         ];
 
         $gatewayMock = $this->createGatewayMock();
         $gatewayMock
             ->expects($this->never())
             ->method('execute')
+        ;
+
+        $action = new CaptureAction();
+        $action->setGateway($gatewayMock);
+
+        $action->execute(new Capture($model));
+    }
+
+    /**
+     * @test
+     */
+    public function shouldDoNothingIfPaymentHasStatusAndIsCaptured()
+    {
+        $model = [
+            'status' => Constants::STATUS_SUCCEEDED,
+            'captured' => true,
+        ];
+
+        $gatewayMock = $this->createGatewayMock();
+        $gatewayMock
+            ->expects($this->never())
+            ->method('execute')
+        ;
+
+        $action = new CaptureAction();
+        $action->setGateway($gatewayMock);
+
+        $action->execute(new Capture($model));
+    }
+
+    /**
+     * @test
+     */
+    public function shouldSubExecuteRetrieveChargeAndConfirmPaymentIfPaymentHasStatusAndIsAuthorized()
+    {
+        $model = [
+            'status' => Constants::STATUS_SUCCEEDED,
+            'captured' => false,
+        ];
+
+        $gatewayMock = $this->createGatewayMock();
+        $gatewayMock
+            ->expects($this->at(0))
+            ->method('execute')
+            ->with($this->isInstanceOf(RetrieveCharge::class))
+        ;
+        $gatewayMock
+            ->expects($this->at(1))
+            ->method('execute')
+            ->with($this->isInstanceOf(ConfirmPayment::class))
         ;
 
         $action = new CaptureAction();
@@ -192,6 +244,7 @@ class CaptureActionTest extends GenericActionTest
         $model = [
             'customer' => 'theCustomerId',
             'status' => Constants::STATUS_SUCCEEDED,
+            'captured' => true,
         ];
 
         $gatewayMock = $this->createGatewayMock();
