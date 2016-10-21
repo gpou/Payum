@@ -9,6 +9,10 @@ class Constants
 
     const STATUS_FAILED = 'failed';
 
+    const OBJECT_CHARGE = 'charge';
+
+    const OBJECT_REFUND = 'refund';
+
     private function __construct()
     {
     }
