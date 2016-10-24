@@ -46,6 +46,7 @@ class ConvertRefundActionTest extends GenericActionTest
     {
         $refund = new Refund();
         $refund->setOriginalTransactionId('originalTransactionId');
+        $refund->setDescription('Refund order 1234');
         $refund->setAmount(123);
 
         $action = new ConvertRefundAction();
@@ -58,6 +59,10 @@ class ConvertRefundActionTest extends GenericActionTest
 
         $this->assertArrayHasKey('amount', $details);
         $this->assertEquals(123, $details['amount']);
+
+        $this->assertArrayHasKey('metadata', $details);
+        $this->assertArrayHasKey('description', $details['metadata']);
+        $this->assertEquals('Refund order 1234', $details['metadata']['description']);
 
         $this->assertArrayHasKey('charge', $details);
         $this->assertEquals('originalTransactionId', $details['charge']);

@@ -23,9 +23,14 @@ class ConvertRefundAction implements ActionInterface
 
         $details = ArrayObject::ensureArrayObject($refund->getDetails());
         $details["charge"] = $refund->getOriginalTransactionId();
-        if ($refund->getAmount()) {
-            $details["amount"] = $refund->getAmount();
+        if ($amount = $refund->getAmount()) {
+            $details["amount"] = $amount;
         }
+        $metadata = @$details["metadata"] ?: [];
+        if ($description = $refund->getDescription()) {
+            $metadata["description"] = $description;
+        }
+        $details["metadata"] = $metadata;
 
         $request->setResult((array) $details);
     }
