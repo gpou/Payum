@@ -9,6 +9,11 @@ class Refund implements RefundInterface
     protected $originalTransactionId;
 
     /**
+     * @var string
+     */
+    protected $description;
+
+    /**
      * @var int
      */
     protected $amount;
@@ -37,6 +42,22 @@ class Refund implements RefundInterface
     public function setOriginalTransactionId($transactionId)
     {
         $this->originalTransactionId = $transactionId;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getDescription()
+    {
+        return $this->description;
+    }
+
+    /**
+     * @param string $description
+     */
+    public function setDescription($description)
+    {
+        $this->description = $description;
     }
 
     /**

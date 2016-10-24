@@ -12,6 +12,11 @@ interface RefundInterface extends DetailsAggregateInterface, DetailsAwareInterfa
     public function getOriginalTransactionId();
 
     /**
+     * @return string
+     */
+    public function getDescription();
+
+    /**
      * @return int
      */
     public function getAmount();
