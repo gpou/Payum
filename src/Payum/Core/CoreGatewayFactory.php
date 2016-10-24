@@ -15,6 +15,7 @@ use Http\Message\StreamFactory\DiactorosStreamFactory;
 use Http\Message\StreamFactory\GuzzleStreamFactory;
 use Payum\Core\Action\AuthorizePaymentAction;
 use Payum\Core\Action\CapturePaymentAction;
+use Payum\Core\Action\RefundPaymentAction;
 use Payum\Core\Action\ExecuteSameRequestWithModelDetailsAction;
 use Payum\Core\Action\GetCurrencyAction;
 use Payum\Core\Action\GetTokenAction;
@@ -150,6 +151,7 @@ class CoreGatewayFactory implements GatewayFactoryInterface
             },
             'payum.action.get_http_request' => new GetHttpRequestAction(),
             'payum.action.capture_payment' => new CapturePaymentAction(),
+            'payum.action.refund_payment' => new RefundPaymentAction(),
             'payum.action.authorize_payment' => new AuthorizePaymentAction(),
             'payum.action.payout_payout' => new PayoutPayoutAction(),
             'payum.action.execute_same_request_with_model_details' => new ExecuteSameRequestWithModelDetailsAction(),
