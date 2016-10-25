@@ -148,28 +148,31 @@ class ConfirmPaymentActionTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @test
-     *
-     * @expectedException \Payum\Core\Exception\LogicException
-     * @expectedExceptionMessage The charge has already been captured.
      */
-    public function throwIfCapturedIsTrue()
+    public function shouldSetErrorIfChargeCaptured()
     {
         $action = new ConfirmPaymentAction('aTemplateName');
 
-        $action->execute(new ConfirmPayment(['id' => 'chargeId', 'paid' => true, 'captured' => true]));
+        $action->execute($confirmPayment = new ConfirmPayment(['id' => 'chargeId', 'paid' => true, 'captured' => true]));
+
+        $model = $confirmPayment->getModel();
+        $this->assertEquals([
+            'message' => 'charge_has_been_captured',
+        ], @$model['error']);
     }
 
     /**
      * @test
-     *
-     * @expectedException \Payum\Core\Exception\LogicException
-     * @expectedExceptionMessage The charge has been refunded.
      */
-    public function throwIfRefundedIsTrue()
+    public function shouldSetErrorIfChargeRefunded()
     {
         $action = new ConfirmPaymentAction('aTemplateName');
+        $action->execute($confirmPayment = new ConfirmPayment(['id' => 'chargeId', 'paid' => true, 'refunded' => true]));
 
-        $action->execute(new ConfirmPayment(['id' => 'chargeId', 'paid' => true, 'refunded' => true]));
+        $model = $confirmPayment->getModel();
+        $this->assertEquals([
+            'message' => 'charge_has_been_refunded',
+        ], @$model['error']);
     }
 
     /**

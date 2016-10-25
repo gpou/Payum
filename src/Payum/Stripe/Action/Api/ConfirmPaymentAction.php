@@ -63,10 +63,12 @@ class ConfirmPaymentAction extends GatewayAwareAction implements ApiAwareInterfa
             throw new LogicException('The charge must have been authorized.');
         }
         if (true == $model['captured']) {
-            throw new LogicException('The charge has already been captured.');
+            $model->replace(['error' => ['message' => 'charge_has_been_captured']]);
+            return;
         }
         if (true == $model['refunded']) {
-            throw new LogicException('The charge has been refunded.');
+            $model->replace(['error' => ['message' => 'charge_has_been_refunded']]);
+            return;
         }
 
         $getHttpRequest = new GetHttpRequest();

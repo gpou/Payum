@@ -29,6 +29,9 @@ class CaptureAction extends GatewayAwareAction
         if ($model['status'] && Constants::STATUS_SUCCEEDED == $model['status'] && false == $model['captured']) {
             $this->gateway->execute(new RetrieveCharge($model));
             $this->gateway->execute(new ConfirmPayment($model));
+            if (@$model['error']) {
+                return;
+            }
         } elseif ($model['status']) {
             return;
         }
