@@ -4,10 +4,10 @@ namespace Payum\Stripe\Action;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Request\GetTransactionDetailsInterface;
+use Payum\Core\Request\GetTransactionInfoInterface;
 use Payum\Stripe\Constants;
 
-class TransactionDetailsAction implements ActionInterface
+class TransactionInfoAction implements ActionInterface
 {
     /**
      * {@inheritDoc}
@@ -29,7 +29,7 @@ class TransactionDetailsAction implements ActionInterface
     public function supports($request)
     {
         return
-            $request instanceof GetTransactionDetailsInterface &&
+            $request instanceof GetTransactionInfoInterface &&
             $request->getModel() instanceof \ArrayAccess
         ;
     }

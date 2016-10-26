@@ -1,7 +1,7 @@
 <?php
 namespace Payum\Core\Request;
 
-class GetTransactionDetails extends Generic implements GetTransactionDetailsInterface
+class GetTransactionInfo extends Generic implements GetTransactionInfoInterface
 {
     protected $transaction_id;
 
