@@ -167,7 +167,7 @@ class CreateCustomerExtension implements ExtensionInterface
         }
 
         $customer = $local->getArray('customer');
-        if (!@$customer['id'] || @$customer['default_source'] == $model['source']) {
+        if (!@$customer['id'] || @$customer['default_source'] == $model['source'] || @$model['error']) {
             return;
         }
 
