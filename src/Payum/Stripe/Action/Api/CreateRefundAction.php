@@ -1,18 +1,20 @@
 <?php
 namespace Payum\Stripe\Action\Api;
 
-use Payum\Core\Action\GatewayAwareAction;
+use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
+use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Stripe\Keys;
-use Payum\Stripe\Request\Api\CreateCustomer;
-use Stripe\Customer;
+use Payum\Core\Request\Refund;
+use Stripe\Refund as StripeRefund;
 use Stripe\Error;
 use Stripe\Stripe;
+use Payum\Stripe\Constants;
 
-class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterface
+class CreateRefundAction implements ActionInterface, ApiAwareInterface
 {
     /**
      * @var Keys
@@ -36,21 +38,25 @@ class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterfa
      */
     public function execute($request)
     {
-        /** @var $request CreateCustomer */
+        /** @var $request Refund */
         RequestNotSupportedException::assertSupports($this, $request);
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
 
+        if (!@$model['charge']) {
+            throw new LogicException('The charge id has to be set.');
+        }
+
+        if (isset($model['amount'])
+            && (!is_numeric($model['amount']) || $model['amount'] <= 0)
+        ) {
+            throw new LogicException('The amount is invalid.');
+        }
+
         try {
             Stripe::setApiKey($this->keys->getSecretKey());
-
-            $customer = $model->toUnsafeArrayWithoutLocal();
-            if (@$customer['source'] && is_array($customer['source']) && !@$customer['source']['object']) {
-                $customer['source']['object'] = 'card';
-            }
-            $customer = Customer::create($customer);
-
-            $model->replace($customer->__toArray(true));
+            $refund = StripeRefund::create($model->toUnsafeArrayWithoutLocal());
+            $model->replace($refund->__toArray(true));
         } catch (Error\Base $e) {
             $model->replace($e->getJsonBody());
         }
@@ -62,7 +68,7 @@ class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterfa
     public function supports($request)
     {
         return
-            $request instanceof CreateCustomer &&
+            $request instanceof Refund &&
             $request->getModel() instanceof \ArrayAccess
         ;
     }

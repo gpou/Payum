@@ -11,9 +11,9 @@ use Payum\Core\Reply\HttpResponse;
 use Payum\Core\Request\GetHttpRequest;
 use Payum\Core\Request\RenderTemplate;
 use Payum\Stripe\Keys;
-use Payum\Stripe\Request\Api\ObtainToken;
+use Payum\Stripe\Request\Api\ConfirmPayment;
 
-class ObtainTokenAction extends GatewayAwareAction implements ApiAwareInterface
+class ConfirmPaymentAction extends GatewayAwareAction implements ApiAwareInterface
 {
     /**
      * @var string
@@ -55,28 +55,31 @@ class ObtainTokenAction extends GatewayAwareAction implements ApiAwareInterface
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
 
-        if ($model['card']) {
-            throw new LogicException('The token has already been set.');
+        $model->validateNotEmpty(array(
+            'id',
+        ));
+
+        if (false == $model['paid']) {
+            throw new LogicException('The charge must have been authorized.');
+        }
+        if (true == $model['captured']) {
+            $model->replace(['error' => ['message' => 'charge_has_been_captured']]);
+            return;
+        }
+        if (true == $model['refunded']) {
+            $model->replace(['error' => ['message' => 'charge_has_been_refunded']]);
+            return;
         }
 
         $getHttpRequest = new GetHttpRequest();
         $this->gateway->execute($getHttpRequest);
 
-        if ($getHttpRequest->method == 'POST' && isset($getHttpRequest->request['stripeCard'])) {
-            $model['card'] = $getHttpRequest->request['stripeCard'];
-
-            return;
-        }
-
-        if ($getHttpRequest->method == 'POST' && isset($getHttpRequest->request['stripeToken'])) {
-            $model['card'] = $getHttpRequest->request['stripeToken'];
-
+        if ($getHttpRequest->method == 'POST' && isset($getHttpRequest->request['confirm'])) {
             return;
         }
 
         $this->gateway->execute($renderTemplate = new RenderTemplate($this->templateName, array(
             'model' => $model,
-            'publishable_key' => $this->keys->getPublishableKey(),
             'actionUrl' => $request->getToken() ? $request->getToken()->getTargetUrl() : null,
         )));
 
@@ -89,7 +92,7 @@ class ObtainTokenAction extends GatewayAwareAction implements ApiAwareInterface
     public function supports($request)
     {
         return
-            $request instanceof ObtainToken &&
+            $request instanceof ConfirmPayment &&
             $request->getModel() instanceof \ArrayAccess
         ;
     }

@@ -4,15 +4,16 @@ namespace Payum\Stripe\Action\Api;
 use Payum\Core\Action\GatewayAwareAction;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
+use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Stripe\Keys;
-use Payum\Stripe\Request\Api\CreateCustomer;
-use Stripe\Customer;
+use Payum\Stripe\Request\Api\RetrieveToken;
+use Stripe\Token;
 use Stripe\Error;
 use Stripe\Stripe;
 
-class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterface
+class RetrieveTokenAction extends GatewayAwareAction implements ApiAwareInterface
 {
     /**
      * @var Keys
@@ -36,21 +37,21 @@ class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterfa
      */
     public function execute($request)
     {
-        /** @var $request CreateCustomer */
+        /** @var $request CreateCharge */
         RequestNotSupportedException::assertSupports($this, $request);
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
 
+        $model->validateNotEmpty(array(
+            'token',
+        ));
+
         try {
             Stripe::setApiKey($this->keys->getSecretKey());
 
-            $customer = $model->toUnsafeArrayWithoutLocal();
-            if (@$customer['source'] && is_array($customer['source']) && !@$customer['source']['object']) {
-                $customer['source']['object'] = 'card';
-            }
-            $customer = Customer::create($customer);
+            $token = Token::retrieve($model['token']);
 
-            $model->replace($customer->__toArray(true));
+            $model->replace($token->__toArray(true));
         } catch (Error\Base $e) {
             $model->replace($e->getJsonBody());
         }
@@ -62,7 +63,7 @@ class CreateCustomerAction extends GatewayAwareAction implements ApiAwareInterfa
     public function supports($request)
     {
         return
-            $request instanceof CreateCustomer &&
+            $request instanceof RetrieveToken &&
             $request->getModel() instanceof \ArrayAccess
         ;
     }
