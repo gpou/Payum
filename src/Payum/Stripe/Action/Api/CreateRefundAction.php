@@ -3,12 +3,14 @@ namespace Payum\Stripe\Action\Api;
 
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
+use Payum\Core\ApiAwareTrait;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Exception\UnsupportedApiException;
-use Payum\Stripe\Keys;
 use Payum\Core\Request\Refund;
+use Payum\Stripe\StripeHeadersInterface;
+use Payum\Stripe\StripeHeadersTrait;
+use Payum\Stripe\Keys;
 use Stripe\Refund as StripeRefund;
 use Stripe\Error;
 use Stripe\Stripe;
@@ -16,21 +18,12 @@ use Payum\Stripe\Constants;
 
 class CreateRefundAction implements ActionInterface, ApiAwareInterface
 {
-    /**
-     * @var Keys
-     */
-    protected $keys;
+    use ApiAwareTrait;
+    use StripeHeadersTrait;
 
-    /**
-     * {@inheritDoc}
-     */
-    public function setApi($api)
+    public function __construct()
     {
-        if (false == $api instanceof Keys) {
-            throw new UnsupportedApiException('Not supported.');
-        }
-
-        $this->keys = $api;
+        $this->apiClass = Keys::class;
     }
 
     /**
@@ -54,8 +47,11 @@ class CreateRefundAction implements ActionInterface, ApiAwareInterface
         }
 
         try {
-            Stripe::setApiKey($this->keys->getSecretKey());
-            $refund = StripeRefund::create($model->toUnsafeArrayWithoutLocal());
+            Stripe::setApiKey($this->api->getSecretKey());
+            $refund = StripeRefund::create(
+                $model->toUnsafeArrayWithoutLocal(),
+                $this->getStripeHeaders($request)
+            );
             $model->replace($refund->__toArray(true));
         } catch (Error\Base $e) {
             $model->replace($e->getJsonBody());

@@ -14,6 +14,7 @@ use Payum\Stripe\Request\Api\RetrieveCustomer;
 use Payum\Stripe\Request\Api\UpdateCustomer;
 use Payum\Stripe\Request\Api\CreateCustomerSource;
 use Payum\Stripe\Request\Api\CreateCharge;
+use Payum\Stripe\Request\Api\CreateToken;
 
 class CreateCustomerExtension implements ExtensionInterface
 {
@@ -107,13 +108,13 @@ class CreateCustomerExtension implements ExtensionInterface
                     $model['error'] = @$customerSource['error'];
                     return;
                 }
-                $model['source'] = $customerSource['id'];
+                $local['card_id'] = $customerSource['id'];
             } else {
-                $model['source'] = $model['card'];
+                $local['card_id'] = $model['card'];
             }
         } else {
             $gateway->execute(new CreateCustomer($customer));
-            $model['source'] = $customer['default_source'];
+            $local['card_id'] = $customer['default_source'];
         }
 
         $customer = $customer->toUnsafeArray();
@@ -125,7 +126,25 @@ class CreateCustomerExtension implements ExtensionInterface
         unset($model['card']);
 
         if (@$customer['id'] && !@$customer['error']) {
-            $model['customer'] = $customer['id'];
+            if (@$local['stripe_headers']['stripe_account']) {
+                // For direct payments into a connected account, we must create a customer token
+                $token = ArrayObject::ensureArrayObject([]);
+                $token['customer'] = $customer['id'];
+                $token['card'] = $local['card_id'];
+                $token['local'] = [
+                    'stripe_headers' => @$local['stripe_headers'] ?: []
+                ];
+                $gateway->execute(new CreateToken($token));
+                if (@$token['id']) {
+                    $model['source'] = $token['id'];
+                } else {
+                    $model['status'] = Constants::STATUS_FAILED;
+                    $model['error'] = $token['error'];
+                }
+            } else {
+                $model['customer'] = $customer['id'];
+                $model['source'] = $local['card_id'];
+            }
         } else {
             $model['status'] = Constants::STATUS_FAILED;
             $model['error'] = $customer['error'];
@@ -150,29 +169,24 @@ class CreateCustomerExtension implements ExtensionInterface
 
         $customer = ArrayObject::ensureArrayObject($customer);
         $gateway->execute(new RetrieveCustomer($customer));
-
         $local['customer'] = $customer->toUnsafeArray();
         $model['local'] = $local->toUnsafeArray();
     }
 
     protected function updateCustomer($gateway, $model)
     {
-        if (!@$model['source'] || !@$model['customer']) {
-            return;
-        }
-
         $local = $model->getArray('local');
-        if (false == $local['save_card']) {
+        if (!@$local['card_id'] || !@$local['customer'] || !$local['save_card']) {
             return;
         }
 
         $customer = $local->getArray('customer');
-
-        if (!@$customer['id'] || @$model['error'] || @$customer['default_source'] == @$model['source']['id']) {
+        if (!@$customer['id'] || @$model['error'] || @$customer['default_source'] == @$local['card_id']) {
             return;
         }
 
         $customer = ArrayObject::ensureArrayObject($customer);
+        $customer['default_source'] = $local['card_id'];
         $gateway->execute(new UpdateCustomer($customer));
 
         if (!@$customer['id']) {

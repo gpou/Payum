@@ -67,7 +67,8 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'id' => 'theCustomerId',
                     'source' => 'theCardToken',
                     'default_source' => 'theCardToken',
-                ]
+                ],
+                'card_id' => 'theCardToken',
             ],
             'source' => 'theCardToken',
         ], (array) $request->getModel());
@@ -120,7 +121,8 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'default_source' => 'theCardToken',
                     'foo' => 'fooVal',
                     'bar' => 'barVal'
-                ]
+                ],
+                'card_id' => 'theCardToken',
             ],
             'source' => 'theCardToken',
         ], (array) $request->getModel());
@@ -167,10 +169,10 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'id' => null,
                     'source' => 'theCardToken',
                     'error' => 'someError'
-                ]
+                ],
+                'card_id' => null,
             ],
             'error' => 'someError',
-            'source' => null,
         ], (array) $request->getModel());
     }
 
@@ -322,7 +324,8 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'id' => 'theCustomerId',
                     'default_source' => 'theCardToken',
                     'source' => 'theCardToken',
-                ]
+                ],
+                'card_id' => 'theCardToken',
             ],
             'source' => 'theCardToken',
         ], (array) $request->getModel());
@@ -375,7 +378,8 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'bar' => 'barVal',
                     'default_source' => 'theCardToken',
                     'source' => 'theCardToken',
-                ]
+                ],
+                'card_id' => 'theCardToken',
             ],
             'source' => 'theCardToken',
         ], (array) $request->getModel());
@@ -422,10 +426,10 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'id' => null,
                     'source' => 'theCardToken',
                     'error' => 'someError',
-                ]
+                ],
+                'card_id' => null,
             ],
             'error' => 'someError',
-            'source' => null,
         ], (array) $request->getModel());
     }
 

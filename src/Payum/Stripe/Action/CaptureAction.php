@@ -36,7 +36,7 @@ class CaptureAction extends GatewayAwareAction
             return;
         }
 
-        if ($model['customer']) {
+        if ($model['customer'] || $model['source']) {
         } else {
             if (false == $model['card']) {
                 $obtainToken = new ObtainToken($request->getToken());

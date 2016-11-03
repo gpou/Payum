@@ -3,32 +3,25 @@ namespace Payum\Stripe\Action\Api;
 
 use Payum\Core\Action\GatewayAwareAction;
 use Payum\Core\ApiAwareInterface;
+use Payum\Core\ApiAwareTrait;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Exception\UnsupportedApiException;
-use Payum\Stripe\Keys;
 use Payum\Stripe\Request\Api\CreateCustomerSource;
+use Payum\Stripe\StripeHeadersInterface;
+use Payum\Stripe\StripeHeadersTrait;
+use Payum\Stripe\Keys;
 use Stripe\Customer;
 use Stripe\Error;
 use Stripe\Stripe;
 
 class CreateCustomerSourceAction extends GatewayAwareAction implements ApiAwareInterface
 {
-    /**
-     * @var Keys
-     */
-    protected $keys;
+    use ApiAwareTrait;
+    use StripeHeadersTrait;
 
-    /**
-     * {@inheritDoc}
-     */
-    public function setApi($api)
+    public function __construct()
     {
-        if (false == $api instanceof Keys) {
-            throw new UnsupportedApiException('Not supported.');
-        }
-
-        $this->keys = $api;
+        $this->apiClass = Keys::class;
     }
 
     /**
@@ -46,9 +39,9 @@ class CreateCustomerSourceAction extends GatewayAwareAction implements ApiAwareI
         ));
 
         try {
-            Stripe::setApiKey($this->keys->getSecretKey());
+            Stripe::setApiKey($this->api->getSecretKey());
 
-            $customer = Customer::retrieve($model['customer']);
+            $customer = Customer::retrieve($model['customer'], $this->getStripeHeaders($request));
             $createdCard = $customer->sources->create(array("card" => $model['source']));
 
             $model->replace($createdCard->__toArray(true));
