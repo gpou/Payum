@@ -2,18 +2,15 @@
 namespace Payum\Stripe\Action\Api;
 
 use Payum\Core\Action\GatewayAwareAction;
-use Payum\Core\ApiAwareInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Reply\HttpResponse;
 use Payum\Core\Request\GetHttpRequest;
 use Payum\Core\Request\RenderTemplate;
-use Payum\Stripe\Keys;
 use Payum\Stripe\Request\Api\ConfirmPayment;
 
-class ConfirmPaymentAction extends GatewayAwareAction implements ApiAwareInterface
+class ConfirmPaymentAction extends GatewayAwareAction
 {
     /**
      * @var string
@@ -21,28 +18,11 @@ class ConfirmPaymentAction extends GatewayAwareAction implements ApiAwareInterfa
     protected $templateName;
 
     /**
-     * @var Keys
-     */
-    protected $keys;
-
-    /**
      * @param string $templateName
      */
     public function __construct($templateName)
     {
         $this->templateName = $templateName;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function setApi($api)
-    {
-        if (false == $api instanceof Keys) {
-            throw new UnsupportedApiException('Not supported.');
-        }
-
-        $this->keys = $api;
     }
 
     /**

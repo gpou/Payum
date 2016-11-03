@@ -3,27 +3,24 @@ namespace Payum\Stripe\Action\Api;
 
 use Payum\Core\Action\GatewayAwareAction;
 use Payum\Core\ApiAwareInterface;
+use Payum\Core\ApiAwareTrait;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Reply\HttpResponse;
 use Payum\Core\Request\GetHttpRequest;
 use Payum\Core\Request\RenderTemplate;
-use Payum\Stripe\Keys;
 use Payum\Stripe\Request\Api\ObtainToken;
+use Payum\Stripe\Keys;
 
 class ObtainTokenAction extends GatewayAwareAction implements ApiAwareInterface
 {
+    use ApiAwareTrait;
+
     /**
      * @var string
      */
     protected $templateName;
-
-    /**
-     * @var Keys
-     */
-    protected $keys;
 
     /**
      * @param string $templateName
@@ -31,18 +28,7 @@ class ObtainTokenAction extends GatewayAwareAction implements ApiAwareInterface
     public function __construct($templateName)
     {
         $this->templateName = $templateName;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function setApi($api)
-    {
-        if (false == $api instanceof Keys) {
-            throw new UnsupportedApiException('Not supported.');
-        }
-
-        $this->keys = $api;
+        $this->apiClass = Keys::class;
     }
 
     /**
@@ -76,7 +62,7 @@ class ObtainTokenAction extends GatewayAwareAction implements ApiAwareInterface
 
         $this->gateway->execute($renderTemplate = new RenderTemplate($this->templateName, array(
             'model' => $model,
-            'publishable_key' => $this->keys->getPublishableKey(),
+            'publishable_key' => $this->api->getPublishableKey(),
             'actionUrl' => $request->getToken() ? $request->getToken()->getTargetUrl() : null,
         )));
 

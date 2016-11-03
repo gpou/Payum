@@ -26,41 +26,9 @@ class ConfirmPaymentActionTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function shouldImplementsApiAwareInterface()
-    {
-        $rc = new \ReflectionClass(ConfirmPaymentAction::class);
-
-        $this->assertTrue($rc->isSubclassOf(ApiAwareInterface::class));
-    }
-
-    /**
-     * @test
-     */
     public function couldBeConstructedWithTemplateAsFirstArgument()
     {
         new ConfirmPaymentAction('aTemplateName');
-    }
-
-    /**
-     * @test
-     */
-    public function shouldAllowSetKeysAsApi()
-    {
-        $action = new ConfirmPaymentAction('aTemplateName');
-
-        $action->setApi(new Keys('publishableKey', 'secretKey'));
-    }
-
-    /**
-     * @test
-     *
-     * @expectedException \Payum\Core\Exception\UnsupportedApiException
-     */
-    public function throwNotSupportedApiIfNotKeysGivenAsApi()
-    {
-        $action = new ConfirmPaymentAction('aTemplateName');
-
-        $action->setApi('not keys instance');
     }
 
     /**

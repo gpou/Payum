@@ -3,33 +3,26 @@ namespace Payum\Stripe\Action\Api;
 
 use Payum\Core\Action\GatewayAwareAction;
 use Payum\Core\ApiAwareInterface;
+use Payum\Core\ApiAwareTrait;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Exception\UnsupportedApiException;
-use Payum\Stripe\Keys;
 use Payum\Stripe\Request\Api\RetrieveCharge;
+use Payum\Stripe\StripeHeadersInterface;
+use Payum\Stripe\StripeHeadersTrait;
+use Payum\Stripe\Keys;
 use Stripe\Charge;
 use Stripe\Error;
 use Stripe\Stripe;
 
 class RetrieveChargeAction extends GatewayAwareAction implements ApiAwareInterface
 {
-    /**
-     * @var Keys
-     */
-    protected $keys;
+    use ApiAwareTrait;
+    use StripeHeadersTrait;
 
-    /**
-     * {@inheritDoc}
-     */
-    public function setApi($api)
+    public function __construct()
     {
-        if (false == $api instanceof Keys) {
-            throw new UnsupportedApiException('Not supported.');
-        }
-
-        $this->keys = $api;
+        $this->apiClass = Keys::class;
     }
 
     /**
@@ -47,9 +40,9 @@ class RetrieveChargeAction extends GatewayAwareAction implements ApiAwareInterfa
         ));
 
         try {
-            Stripe::setApiKey($this->keys->getSecretKey());
+            Stripe::setApiKey($this->api->getSecretKey());
 
-            $charge = Charge::retrieve($model['id']);
+            $charge = Charge::retrieve($model['id'], $this->getStripeHeaders($request));
 
             $model->replace($charge->__toArray(true));
         } catch (Error\Base $e) {

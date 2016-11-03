@@ -2,13 +2,10 @@
 namespace Payum\Stripe\Action\Api;
 
 use Payum\Core\Action\GatewayAwareAction;
-use Payum\Core\ApiAwareInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Model\CreditCardInterface;
 use Payum\Core\Security\SensitiveValue;
-use Payum\Stripe\Keys;
 use Payum\Stripe\Request\Api\CreateToken;
 use Payum\Stripe\Request\Api\CreateTokenForCreditCard;
 use Stripe\Error;
@@ -39,7 +36,7 @@ class CreateTokenForCreditCardAction extends GatewayAwareAction
         }
 
         $this->gateway->execute(new CreateToken($token));
-        
+
         $request->setToken($token->toUnsafeArray());
     }
 

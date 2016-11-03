@@ -106,9 +106,9 @@ class CreateChargeActionTest extends \PHPUnit_Framework_TestCase
      * @test
      *
      * @expectedException \Payum\Core\Exception\LogicException
-     * @expectedExceptionMessage The either card token or customer id has to be set.
+     * @expectedExceptionMessage The either card token or customer id or source has to be set.
      */
-    public function throwIfNotCardNorCustomerSet()
+    public function throwIfNotCardNorCustomerNorSourceSet()
     {
         $action = new CreateChargeAction();
 
